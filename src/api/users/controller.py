@@ -1,9 +1,16 @@
-from flask_restful import Resource, request
+from flask_restful import Resource, request, reqparse
 
 users = []
 
 # @app.route('/users/<string:name>)
 class User(Resource):
+  parser = reqparse.RequestParser()
+  parser.add_argument('email',
+                      type=str,
+                      required=True,
+                      help='Email cannot be blank'
+                      )
+
   def get(self, name):
     user = next(filter(lambda x: x['name'] == name, users), None)
     return {'status': True, 'message': '', 'data': user}, 200 if user else 400
@@ -12,13 +19,14 @@ class User(Resource):
     if(next(filter(lambda x: x['name'] == name, users), None)):
       return {'status': False, 'message': 'An user with name \'{}\' already exists'.format(name)}, 400
 
-    data = request.get_json()
+    data = User.parser.parse_args()
     user = {'name': name, 'email': data['email']}
     users.append(user)
     return {'status': True, 'message': 'User created', 'data': user}, 201
 
   def put(self, name):
-    data = request.get_json()
+    data = User.parser.parse_args()
+
     user = next(filter(lambda x: x['name'] == name, users), None)
 
     if user is None:
