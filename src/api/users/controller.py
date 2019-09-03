@@ -1,8 +1,9 @@
 from flask_restful import Resource, request, reqparse
+from .model import UserModel
+import sqlite3
 
-users = []
 
-# @app.route('/users/<string:name>)
+# @app.route('/users/)
 class User(Resource):
   parser = reqparse.RequestParser()
   parser.add_argument('email',
@@ -10,39 +11,31 @@ class User(Resource):
                       required=True,
                       help='Email cannot be blank'
                       )
+  parser.add_argument('password',
+                      type=str,
+                      required=True,
+                      help='Password cannot be blank'
+                      )
 
-  def get(self, name):
-    user = next(filter(lambda x: x['name'] == name, users), None)
-    return {'status': True, 'message': '', 'data': user}, 200 if user else 400
-
-  def post(self, name):
-    if(next(filter(lambda x: x['name'] == name, users), None)):
-      return {'status': False, 'message': 'An user with name \'{}\' already exists'.format(name)}, 400
-
-    data = User.parser.parse_args()
-    user = {'name': name, 'email': data['email']}
-    users.append(user)
-    return {'status': True, 'message': 'User created', 'data': user}, 201
-
-  def put(self, name):
+  def post(self):
     data = User.parser.parse_args()
 
-    user = next(filter(lambda x: x['name'] == name, users), None)
+    if UserModel.find_by_email(data['email']):
+      return {'status': False, 'message': 'An user with that email already exists'}, 400
 
-    if user is None:
-      user = {'name': name, 'email': data['email']}
-      users.append(user)
-      return {'status': True, 'message': 'User Created', 'data': user}, 201
+    UserModel.create(data['email'], data['password'])
 
-    user.update(data)
-    return {'status': True, 'message': 'User Updated', 'data': user}, 201
+    return {'status': True, 'message': 'User created', 'data': list()}, 201
 
-  def delete(self, name):
-    global users
-    users = list(filter(lambda x: x['name'] != name, users))
-    return {'status': True, 'message': 'User deleted', 'data': []}, 201
+  def delete(self, id):
+    if not UserModel.find_by_id(_id=id):
+      return {'status': True, 'message': 'User has been removed'}, 200
+
+    UserModel.remove(_id=id)
+    return {'status': True, 'message': 'User has been removed'}, 200
+
 
 # @app.route('/users)
 class UserList(Resource):
   def get(self):
-    return {'status': True, 'message': '', 'data': users}, 200
+    return {'status': True, 'message': '', 'data': UserModel.find_all()}, 201
